@@ -1,6 +1,7 @@
 #include "Pipeline.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 
@@ -45,16 +46,24 @@ Pipeline::Pipeline()
 
 Pipeline::~Pipeline()
 {
+	bool busy;
 	{
-		std::lock_guard<std::mutex> lock(myMutex);
-		myQuit = true;
-		myHasRequest = false;
+		std::lock_guard<std::mutex> lock(myLoad->mutex);
+		myLoad->quit = true;
+		myLoad->hasRequest = false;
+		myLoad->cancel = true;   // si se esta construyendo un engine, TensorRT lo corta en el proximo paso
+		busy = myLoad->busy;
 	}
-	myCv.notify_all();
+	myLoad->cv.notify_all();
 	if (myLoader.joinable())
-		myLoader.join();   // solo espera si justo se esta construyendo un engine
+	{
+		// cargando un modelo: no esperar (el build puede tardar), el hilo termina solo con su copia del estado
+		if (busy)
+			myLoader.detach();
+		else
+			myLoader.join();
+	}
 	myModel.reset();
-	myPending.reset();
 	freeBuffers();
 	cudaFreeHost(hPersons);
 	cudaFreeHost(hArea);
@@ -86,22 +95,23 @@ Pipeline::requestModel(const std::string& onnxPath, bool fp16, int cudaDevice, C
 	myModelKey = key;
 	{
 		// Nunca bloquea: el hilo de carga toma siempre el ultimo pedido
-		std::lock_guard<std::mutex> lock(myMutex);
-		myLoadError.clear();
-		myReqPath = onnxPath;
-		myReqFp16 = fp16;
-		myReqDevice = cudaDevice;
-		myReqCtx = ctx;
-		myHasRequest = true;
-		myLoading = true;
+		std::lock_guard<std::mutex> lock(myLoad->mutex);
+		myLoad->loadError.clear();
+		myLoad->reqPath = onnxPath;
+		myLoad->reqFp16 = fp16;
+		myLoad->reqDevice = cudaDevice;
+		myLoad->reqCtx = ctx;
+		myLoad->hasRequest = true;
+		myLoad->cancel = true;   // cortar el build en curso: se pidio otro modelo
+		myLoad->loading = true;
 	}
-	myCv.notify_all();
+	myLoad->cv.notify_all();
 	if (!myLoader.joinable())
-		myLoader = std::thread(&Pipeline::loaderLoop, this);
+		myLoader = std::thread(&Pipeline::loaderLoop, myLoad);
 }
 
 void
-Pipeline::loaderLoop()
+Pipeline::loaderLoop(std::shared_ptr<LoaderState> st)
 {
 	for (;;)
 	{
@@ -110,15 +120,19 @@ Pipeline::loaderLoop()
 		int device;
 		CUcontext ctx;
 		{
-			std::unique_lock<std::mutex> lock(myMutex);
-			myCv.wait(lock, [this] { return myQuit || myHasRequest; });
-			if (myQuit)
+			std::unique_lock<std::mutex> lock(st->mutex);
+			st->busy = false;
+			st->cv.wait(lock, [&] { return st->quit || st->hasRequest; });
+			if (st->quit)
 				return;
-			path = myReqPath;
-			fp16 = myReqFp16;
-			device = myReqDevice;
-			ctx = myReqCtx;
-			myHasRequest = false;
+			path = st->reqPath;
+			fp16 = st->reqFp16;
+			device = st->reqDevice;
+			ctx = st->reqCtx;
+			st->hasRequest = false;
+			st->busy = true;
+			st->cancel = false;
+			st->buildStart = -1.0;
 		}
 		if (ctx)
 			cuCtxSetCurrent(ctx);
@@ -131,7 +145,7 @@ Pipeline::loaderLoop()
 		try
 		{
 			m = std::make_shared<TrtModel>();
-			ok = m->load(path, fp16, err);
+			ok = m->load(path, fp16, err, &st->cancel, &st->buildStart);
 		}
 		catch (const std::exception& e)
 		{
@@ -143,22 +157,31 @@ Pipeline::loaderLoop()
 		}
 		if (!ok)
 			m.reset();
-		std::lock_guard<std::mutex> lock(myMutex);
-		if (myHasRequest || myQuit)
-			continue;   // mientras cargaba pidieron otro modelo: descartar este
+		std::lock_guard<std::mutex> lock(st->mutex);
+		if (st->hasRequest || st->quit)
+			continue;   // mientras cargaba pidieron otro modelo (o se borro el operador): descartar este
 		if (ok)
-			myPending = m;
+			st->pending = m;
 		else
-			myLoadError = err;
-		myLoading = false;
+			st->loadError = err;
+		st->loading = false;
 	}
+}
+
+double
+Pipeline::buildSeconds() const
+{
+	double start = myLoad->buildStart;
+	if (start < 0 || !myLoad->loading)
+		return -1.0;
+	return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count() - start;
 }
 
 std::string
 Pipeline::loadError()
 {
-	std::lock_guard<std::mutex> lock(myMutex);
-	return myLoadError;
+	std::lock_guard<std::mutex> lock(myLoad->mutex);
+	return myLoad->loadError;
 }
 
 bool
@@ -169,11 +192,11 @@ Pipeline::process(cudaSurfaceObject_t in, int inW, int inH, bool inBgra, cudaSur
 	err.clear();
 	cudaGetLastError();   // limpiar errores viejos que no son nuestros (otros OPs en este hilo)
 	{
-		std::lock_guard<std::mutex> lock(myMutex);
-		if (myPending)
+		std::lock_guard<std::mutex> lock(myLoad->mutex);
+		if (myLoad->pending)
 		{
-			myModel = myPending;
-			myPending.reset();
+			myModel = myLoad->pending;
+			myLoad->pending.reset();
 			myTracker.reset();
 		}
 	}

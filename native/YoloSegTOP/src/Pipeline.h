@@ -25,7 +25,9 @@ public:
 	// ctx: contexto CUDA activo de TouchDesigner (el engine tiene que vivir en el mismo contexto)
 	void requestModel(const std::string& onnxPath, bool fp16, int cudaDevice, CUcontext ctx = nullptr);
 	bool modelReady() const { return myModel != nullptr; }
-	bool modelLoading() const { return myLoading; }
+	bool modelLoading() const { return myLoad->loading; }
+	// segundos que lleva construyendo el engine de TensorRT, o -1 si no esta construyendo uno
+	double buildSeconds() const;
 	std::string loadError();
 
 	void resetTracker() { myResetPending = true; }
@@ -49,23 +51,34 @@ public:
 private:
 	static const int kMaxPersons = 64;
 
+	// Estado compartido con el hilo de carga. Es un shared_ptr: si el operador se borra mientras
+	// se construye un engine, el hilo sigue (ya cancelado) con su copia y la libera al terminar,
+	// asi borrar el operador nunca espera.
+	struct LoaderState
+	{
+		std::mutex mutex;
+		std::condition_variable cv;
+		bool quit = false;
+		bool hasRequest = false;
+		bool busy = false;   // el hilo esta cargando un modelo
+		std::string reqPath;
+		bool reqFp16 = true;
+		int reqDevice = 0;
+		CUcontext reqCtx = nullptr;
+		std::shared_ptr<TrtModel> pending;
+		std::string loadError;
+		std::atomic<bool> loading{ false };
+		std::atomic<bool> cancel{ false };
+		std::atomic<double> buildStart{ -1.0 };   // steady_clock en segundos, -1 = no construye
+	};
+
 	void freeBuffers();
-	void loaderLoop();
+	static void loaderLoop(std::shared_ptr<LoaderState> st);
 
 	std::shared_ptr<TrtModel> myModel;
-	std::shared_ptr<TrtModel> myPending;
-	std::mutex myMutex;
-	std::condition_variable myCv;
+	std::shared_ptr<LoaderState> myLoad = std::make_shared<LoaderState>();
 	std::thread myLoader;
-	std::atomic<bool> myLoading{ false };
-	std::string myLoadError;
 	std::string myModelKey;
-	std::string myReqPath;
-	bool myReqFp16 = true;
-	int myReqDevice = 0;
-	CUcontext myReqCtx = nullptr;
-	bool myHasRequest = false;
-	bool myQuit = false;
 
 	ByteTracker myTracker;
 	std::atomic<bool> myResetPending{ false };

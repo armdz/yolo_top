@@ -3,6 +3,8 @@
 #include <NvInfer.h>
 #include <NvOnnxParser.h>
 
+#include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -59,6 +61,28 @@ bool fileExists(const std::string& p)
 	return fs::is_regular_file(u8path(p), ec);
 }
 
+// Cancelacion del build del engine: si 'cancel' se pone en true (se borro el operador o se pidio
+// otro modelo), TensorRT corta el build en el proximo paso. (Los pasos que reporta no sirven como
+// porcentaje: casi todo el tiempo se va en una sola fase sin avisos.)
+class BuildMonitor : public IProgressMonitor
+{
+public:
+	explicit BuildMonitor(const std::atomic<bool>* cancel) : myCancel(cancel) {}
+
+	void phaseStart(const char*, const char*, int32_t) noexcept override {}
+	bool stepComplete(const char*, int32_t) noexcept override { return !(myCancel && *myCancel); }
+	void phaseFinish(const char*) noexcept override {}
+
+private:
+	const std::atomic<bool>* myCancel;
+};
+
+double
+nowSeconds()
+{
+	return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+
 // true si 'a' es mas nuevo que 'b' (el .onnx se reexporto despues de construir el engine)
 bool newerThan(const std::string& a, const std::string& b)
 {
@@ -102,8 +126,11 @@ TrtModel::enginePathFor(const std::string& onnxPath, bool fp16)
 }
 
 bool
-TrtModel::buildEngine(const std::string& onnxPath, const std::string& enginePath, bool fp16, std::string& err)
+TrtModel::buildEngine(const std::string& onnxPath, const std::string& enginePath, bool fp16, std::string& err,
+					  const std::atomic<bool>* cancel, std::atomic<double>* buildStart)
 {
+	if (buildStart)
+		*buildStart = nowSeconds();
 	std::unique_ptr<IBuilder> builder(createInferBuilder(logger()));
 	if (!builder) { err = "Could not create the TensorRT builder"; return false; }
 	std::unique_ptr<INetworkDefinition> network(builder->createNetworkV2(0U));
@@ -131,7 +158,10 @@ TrtModel::buildEngine(const std::string& onnxPath, const std::string& enginePath
 	config->setMemoryPoolLimit(MemoryPoolType::kWORKSPACE, 1ULL << 30);
 	if (fp16)
 		config->setFlag(BuilderFlag::kFP16);
+	BuildMonitor monitor(cancel);
+	config->setProgressMonitor(&monitor);
 	std::unique_ptr<IHostMemory> plan(builder->buildSerializedNetwork(*network, *config));
+	if (cancel && *cancel) { err = "Engine build cancelled"; return false; }
 	if (!plan) { err = "TensorRT could not build the engine: " + logger().get(); return false; }
 
 	// se escribe a un temporal y se renombra: si algo falla no queda un engine a medias
@@ -160,7 +190,8 @@ TrtModel::buildEngine(const std::string& onnxPath, const std::string& enginePath
 }
 
 bool
-TrtModel::load(const std::string& onnxPath, bool fp16, std::string& err)
+TrtModel::load(const std::string& onnxPath, bool fp16, std::string& err, const std::atomic<bool>* cancel,
+			   std::atomic<double>* buildStart)
 {
 	if (!fileExists(onnxPath)) { err = "Model not found: " + onnxPath; return false; }
 
@@ -170,7 +201,7 @@ TrtModel::load(const std::string& onnxPath, bool fp16, std::string& err)
 	{
 		enginePath = enginePathFor(onnxPath, fp16);
 		bool stale = fileExists(enginePath) && newerThan(onnxPath, enginePath);
-		if ((!fileExists(enginePath) || stale) && !buildEngine(onnxPath, enginePath, fp16, err))
+		if ((!fileExists(enginePath) || stale) && !buildEngine(onnxPath, enginePath, fp16, err, cancel, buildStart))
 			return false;
 	}
 

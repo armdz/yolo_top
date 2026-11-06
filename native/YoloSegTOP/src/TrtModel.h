@@ -3,6 +3,7 @@
 #pragma once
 
 #include <cuda_runtime.h>
+#include <atomic>
 #include <string>
 
 namespace nvinfer1
@@ -17,8 +18,11 @@ class TrtModel
 public:
 	~TrtModel();
 
-	// Carga el .engine cacheado al lado del .onnx, o lo construye (tarda ~1-2 min la primera vez).
-	bool load(const std::string& onnxPath, bool fp16, std::string& err);
+	// Carga el .engine cacheado al lado del .onnx, o lo construye (varios minutos la primera vez).
+	// cancel: si pasa a true, el build se corta en el proximo paso. buildStart: se escribe cuando
+	// empieza a construir un engine (segundos de steady_clock), para mostrar cuanto lleva.
+	bool load(const std::string& onnxPath, bool fp16, std::string& err,
+			  const std::atomic<bool>* cancel = nullptr, std::atomic<double>* buildStart = nullptr);
 	bool infer(cudaStream_t stream);
 
 	static std::string enginePathFor(const std::string& onnxPath, bool fp16);
@@ -36,7 +40,8 @@ public:
 	float* dProto = nullptr;
 
 private:
-	bool buildEngine(const std::string& onnxPath, const std::string& enginePath, bool fp16, std::string& err);
+	bool buildEngine(const std::string& onnxPath, const std::string& enginePath, bool fp16, std::string& err,
+					 const std::atomic<bool>* cancel, std::atomic<double>* buildStart);
 
 	nvinfer1::IRuntime* myRuntime = nullptr;
 	nvinfer1::ICudaEngine* myEngine = nullptr;

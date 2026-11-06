@@ -155,7 +155,18 @@ public:
 		else if (!hasModel)
 			myError = opcommon::noModelError();
 		else if (myPipeline->modelLoading())
-			myWarning = "Preparing TensorRT... the first time it builds the engine (can take several minutes), then it loads in seconds.";
+		{
+			double t = myPipeline->buildSeconds();
+			if (t >= 0.0)
+			{
+				char buf[200];
+				int s = (int)t;
+				snprintf(buf, sizeof(buf), "Building the TensorRT engine: %d:%02d elapsed (first time only, can take several minutes; it is cached next to the .onnx).", s / 60, s % 60);
+				myWarning = buf;
+			}
+			else
+				myWarning = "Loading the TensorRT engine...";
+		}
 		else if (!loadErr.empty())
 			myError = loadErr;
 

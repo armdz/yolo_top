@@ -4,7 +4,7 @@ People tracking and segmentation in TouchDesigner with YOLO26.
 
 Runs on Windows (with or without an NVIDIA GPU) and on macOS.
 
-[Español (Argentina) más abajo](#español)
+[Español más abajo](#español)
 
 ## Contents
 
