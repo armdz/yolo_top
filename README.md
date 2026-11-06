@@ -6,10 +6,14 @@ Runs on Windows (with or without an NVIDIA GPU) and on macOS.
 
 [Español más abajo](#español)
 
+![YOLO Seg Track in TouchDesigner](docs/cap.png)
+
 ## Contents
 
 | Folder | What it is |
 |---|---|
+| [`example`](example) | `yolo_top_example.toe`: a ready-made network with a test video (`yolo_test.mp4`). |
+| [`models`](models) | `yolo26n-seg.onnx`, a ready-to-use model. |
 | [`native/YoloSegTOP`](native/YoloSegTOP/README.md) | Native operator. **YOLO Seg Track** detects, tracks and segments people. One plugin that picks its backend: **CUDA + TensorRT** on NVIDIA (~3-5 ms per frame), **ONNX Runtime** elsewhere (CoreML on Mac, DirectML or CPU on Windows). |
 
 ## Quick start
@@ -26,6 +30,10 @@ Runs on Windows (with or without an NVIDIA GPU) and on macOS.
 
 3. In TouchDesigner: OP Create, **Custom** tab, **YOLO Seg Track**. Connect a camera and choose `yolo26n-seg.onnx` in *Model File*.
    - With NVIDIA, the first load builds the TensorRT engine: it takes several minutes (the operator shows a warning meanwhile) and is cached next to the `.onnx`, so later loads are instant.
+
+## Example
+
+Open [`example/yolo_top_example.toe`](example/yolo_top_example.toe) (with the operator installed). It plays `example/yolo_test.mp4` through a **YOLO Seg Track** that already points to `models/yolo26n-seg.onnx`, with an Info DAT and an Info CHOP showing each person's data. Keep the `example` and `models` folders together, as in the repo: the paths are relative.
 
 To export other models (bigger, other aspect ratios), see [Models](native/YoloSegTOP/README.md#models). Details (parameters, outputs, building, troubleshooting) are in [`native/YoloSegTOP/README.md`](native/YoloSegTOP/README.md).
 
@@ -81,6 +89,10 @@ bash build_mac.sh
 ```
 
 El script baja ONNX Runtime, compila el plugin y lo instala en `~/Library/Application Support/Derivative/TouchDesigner099/Plugins`. El modelo `yolo26n-seg.onnx` lo bajás de [Releases](https://github.com/armdz/yolo_top/releases/latest) o lo tomás de [`models/`](models). La primera vez que TouchDesigner carga el plugin, te pide permiso.
+
+### Ejemplo
+
+Abrí [`example/yolo_top_example.toe`](example/yolo_top_example.toe) (con el operador instalado). Reproduce `example/yolo_test.mp4` a través de un **YOLO Seg Track** que ya apunta a `models/yolo26n-seg.onnx`, con un Info DAT y un Info CHOP que muestran los datos de cada persona. Dejá las carpetas `example` y `models` juntas, como están en el repo: las rutas son relativas.
 
 ### Uso
 

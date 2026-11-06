@@ -3,3 +3,6 @@
 *.sh text eol=lf
 *.dll binary
 *.onnx binary
+*.toe binary
+*.mp4 binary
+*.png binary

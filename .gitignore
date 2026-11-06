@@ -7,6 +7,13 @@
 !/native/
 !/.github/
 !/models/
+!/docs/
+!/example/
+
+# example: solo el proyecto y el video de prueba
+example/*
+!example/yolo_top_example.toe
+!example/yolo_test.mp4
 
 # build: solo la DLL final (la publica el workflow de Release con cada tag v*)
 native/YoloSegTOP/build/*
