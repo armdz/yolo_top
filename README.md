@@ -15,14 +15,14 @@ Runs on Windows (with or without an NVIDIA GPU) and on macOS.
 ## Quick start
 
 1. Download from [Releases](https://github.com/armdz/yolo_top/releases/latest):
-   - `YoloSegTOP.dll` (Windows) or `YoloSegTOP-macos.zip` (macOS).
+   - `YoloSegTOP.dll` (Windows).
    - `yolo26n-seg.onnx`: a ready-to-use model (YOLO26n-seg, 384×640). It is also in [`models/`](models).
 2. Install the operator:
 
    | System | How |
    |---|---|
    | Windows | Copy `YoloSegTOP.dll` to `Documents\Derivative\Plugins` and restart TouchDesigner. Without NVIDIA, also run [`get_directml.bat`](native/YoloSegTOP/scripts/get_directml.bat) to use the GPU (AMD or Intel). |
-   | macOS | Unzip `YoloSegTOP-macos.zip`, copy `YoloSegTOP.plugin` to `~/Library/Application Support/Derivative/TouchDesigner099/Plugins` and run once in Terminal: `xattr -dr com.apple.quarantine ~/Library/Application\ Support/Derivative/TouchDesigner099/Plugins/YoloSegTOP.plugin` (macOS blocks downloaded plugins that aren't notarized). |
+   | macOS | `bash native/YoloSegTOP/build_mac.sh` (builds and installs; see [macOS](native/YoloSegTOP/README.md#macos)). |
 
 3. In TouchDesigner: OP Create, **Custom** tab, **YOLO Seg Track**. Connect a camera and choose `yolo26n-seg.onnx` in *Model File*.
    - With NVIDIA, the first load builds the TensorRT engine: it takes several minutes (the operator shows a warning meanwhile) and is cached next to the `.onnx`, so later loads are instant.
@@ -31,7 +31,7 @@ To export other models (bigger, other aspect ratios), see [Models](native/YoloSe
 
 ## Releases
 
-GitHub Actions builds the plugin for Windows and macOS on every push. Pushing a version tag also publishes the release with the DLL, the Mac plugin, the model and `get_directml.bat`:
+Pushing a version tag publishes a release with the Windows DLL (`native/YoloSegTOP/build/YoloSegTOP.dll`, built with `build.bat` and committed), the model and `get_directml.bat`:
 
 ```
 git tag v1.0.1
@@ -71,19 +71,16 @@ Es un solo plugin: elige el motor solo al arrancar TouchDesigner. Un `.toe` hech
 
 ### Instalación en Mac
 
-Necesitás macOS 13.4 o más nuevo (Apple Silicon o Intel).
+Por ahora hay que compilarlo en la Mac. Necesitás macOS 13.4 o más nuevo, las herramientas de Xcode y CMake:
 
-1. Bajá de [Releases](https://github.com/armdz/yolo_top/releases/latest) el `YoloSegTOP-macos.zip` y el modelo `yolo26n-seg.onnx`.
-2. Descomprimí el zip y copiá `YoloSegTOP.plugin` a `~/Library/Application Support/Derivative/TouchDesigner099/Plugins` (si la carpeta no existe, creala).
-3. Corré una vez en la Terminal (macOS bloquea los plugins bajados de internet que no están notarizados):
+```bash
+xcode-select --install
+brew install cmake
+cd native/YoloSegTOP
+bash build_mac.sh
+```
 
-   ```bash
-   xattr -dr com.apple.quarantine ~/Library/Application\ Support/Derivative/TouchDesigner099/Plugins/YoloSegTOP.plugin
-   ```
-
-4. Reiniciá TouchDesigner. La primera vez que carga el plugin, te pide permiso.
-
-Si preferís compilarlo vos: `bash native/YoloSegTOP/build_mac.sh` (necesita las herramientas de Xcode y CMake).
+El script baja ONNX Runtime, compila el plugin y lo instala en `~/Library/Application Support/Derivative/TouchDesigner099/Plugins`. El modelo `yolo26n-seg.onnx` lo bajás de [Releases](https://github.com/armdz/yolo_top/releases/latest) o lo tomás de [`models/`](models). La primera vez que TouchDesigner carga el plugin, te pide permiso.
 
 ### Uso
 
@@ -127,7 +124,7 @@ YOLO("yolo26s-seg.pt").export(format="onnx", imgsz=(384, 640), half=False, simpl
 
 ### Releases
 
-GitHub Actions compila el plugin para Windows y Mac en cada push. Si además subís un tag de versión, publica el release solo, con la DLL, el plugin de Mac, el modelo y `get_directml.bat`:
+Si subís un tag de versión, GitHub publica el release solo, con la DLL de Windows (`native/YoloSegTOP/build/YoloSegTOP.dll`, la que compila `build.bat` y está en el repo), el modelo y `get_directml.bat`:
 
 ```
 git tag v1.0.1

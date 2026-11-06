@@ -25,9 +25,7 @@ Without NVIDIA, the plugin uses the `onnxruntime.dll` that ships with TouchDesig
 
 ### macOS
 
-Requires macOS 13.4 or newer. Unzip `YoloSegTOP-macos.zip`, copy `YoloSegTOP.plugin` to `~/Library/Application Support/Derivative/TouchDesigner099/Plugins` and run once in Terminal: `xattr -dr com.apple.quarantine ~/Library/Application\ Support/Derivative/TouchDesigner099/Plugins/YoloSegTOP.plugin` (macOS blocks downloaded plugins that aren't notarized).
-
-To build it yourself you need the Xcode Command Line Tools (`xcode-select --install`) and CMake (`brew install cmake`):
+Build it on the Mac (Mac binaries are not in the release yet). You need macOS 13.4 or newer, the Xcode Command Line Tools (`xcode-select --install`) and CMake (`brew install cmake`):
 
 ```bash
 cd native/YoloSegTOP
@@ -128,9 +126,9 @@ Without the CUDA Toolkit you can build an ONNX Runtime-only version with CMake: 
 
 `bash build_mac.sh` (see [Install](#macos)). `bash build_mac.sh noinstall` only builds, into `build/mac`.
 
-### Continuous integration
+### Releases
 
-`.github/workflows/build.yml` builds the Windows DLL and the macOS plugin on every push (on macOS it also loads the model once with ONNX Runtime + CoreML). Pushing a `v*` tag publishes a release with both builds, the model and `get_directml.bat`.
+`build.bat` leaves the DLL in `build\YoloSegTOP.dll`, which is committed. Pushing a `v*` tag runs `.github/workflows/build.yml`, which publishes a release with that DLL, the model and `get_directml.bat` (it doesn't compile anything).
 
 ### Testing outside TD
 
