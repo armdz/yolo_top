@@ -1,0 +1,31 @@
+# Solo se versiona el operador nativo; el resto de la carpeta
+# (proyectos .toe, venv, modelos, backups) queda afuera.
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/native/
+
+# build: solo las DLL finales de Windows
+native/YoloSegTOP/build/*
+!native/YoloSegTOP/build/YoloSegTOP.dll
+
+# ONNX Runtime para macOS: lo baja build_mac.sh
+native/YoloSegTOP/third_party/onnxruntime/osx/
+
+# import libs generadas por mklib.bat desde los .def
+*.lib
+*.exp
+*.obj
+*.old
+*.dll.old*
+*.new.dll
+
+__pycache__/
+*.pyc
+.DS_Store
+
+# engines de TensorRT y modelos compilados de CoreML: dependen de la maquina
+*.engine
+*.engine.tmp
+*.coreml/
