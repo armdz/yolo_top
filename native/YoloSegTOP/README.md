@@ -19,7 +19,7 @@ The info popup (middle-click on the operator) shows which backend is in use. To 
 
 ### Windows (no compiling)
 
-Copy `build\YoloSegTOP.dll` to `Documents\Derivative\Plugins` and restart TouchDesigner. The operator shows up in the OP Create dialog, **Custom** tab.
+Download `YoloSegTOP.dll` from [Releases](https://github.com/armdz/yolo_top/releases/latest) (or take `build\YoloSegTOP.dll`), copy it to `Documents\Derivative\Plugins` and restart TouchDesigner. The operator shows up in the OP Create dialog, **Custom** tab.
 
 Without NVIDIA, the plugin uses the `onnxruntime.dll` that ships with TouchDesigner, which runs on the CPU. To use the GPU (AMD or Intel), run `scripts\get_directml.bat`. It downloads ONNX Runtime with DirectML to `Plugins\YoloSeg\`, and the operator's info popup then shows `Backend: ONNX Runtime DirectML`.
 
@@ -91,7 +91,7 @@ All parameters are on a single page, grouped in sections. Parameters that don't 
 
 ## Models
 
-Models are not included. You need a **YOLO26 seg** model exported to ONNX in **FP32** with a fixed size:
+A ready-to-use model, `yolo26n-seg.onnx` (YOLO26n-seg, 384×640), is in [Releases](https://github.com/armdz/yolo_top/releases/latest). To use another one, you need a **YOLO26 seg** model exported to ONNX in **FP32** with a fixed size:
 
 ```python
 from ultralytics import YOLO
