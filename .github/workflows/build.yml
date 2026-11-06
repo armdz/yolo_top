@@ -1,6 +1,7 @@
 # Publica el release cuando se sube un tag v* (ej. git tag v1.0.1 && git push origin v1.0.1).
 # No compila nada: sube la DLL ya compilada que esta en el repo (build.bat la deja en
-# native/YoloSegTOP/build/YoloSegTOP.dll), el modelo y get_directml.bat.
+# native/YoloSegTOP/build/YoloSegTOP.dll), el zip de Mac (build_mac.sh lo deja en
+# native/YoloSegTOP/build/YoloSegTOP-macOS.zip), el modelo y get_directml.bat.
 name: Release
 
 on:
@@ -23,5 +24,6 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             native/YoloSegTOP/build/YoloSegTOP.dll
+            native/YoloSegTOP/build/YoloSegTOP-macOS.zip
             models/yolo26n-seg.onnx
             native/YoloSegTOP/scripts/get_directml.bat

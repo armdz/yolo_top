@@ -6,7 +6,7 @@
 - `yolo26n-seg.onnx`: ready-to-use model (YOLO26n-seg, 384×640, FP32). Choose it in *Model File*. With NVIDIA, the first load builds the TensorRT engine (several minutes, cached next to the `.onnx`).
 - `get_directml.bat`: optional, for Windows without NVIDIA. Run it to use the GPU (AMD or Intel) instead of the CPU.
 
-macOS: build it with `bash native/YoloSegTOP/build_mac.sh` (see the README).
+- `YoloSegTOP-macOS.zip`: macOS 13.4 or newer (Apple Silicon and Intel). Unzip it, copy `YoloSegTOP.plugin` to `~/Library/Application Support/Derivative/TouchDesigner099/Plugins` and restart TouchDesigner. It uses ONNX Runtime with CoreML. The plugin is not notarized: if macOS blocks it, run `xattr -dr com.apple.quarantine ~/Library/Application\ Support/Derivative/TouchDesigner099/Plugins/YoloSegTOP.plugin`.
 
 The model is by [Ultralytics](https://github.com/ultralytics/ultralytics) and is licensed under AGPL-3.0.
 
@@ -20,6 +20,6 @@ The model is by [Ultralytics](https://github.com/ultralytics/ultralytics) and is
 - `yolo26n-seg.onnx`: modelo listo para usar (YOLO26n-seg, 384×640, FP32). Elegilo en *Model File*. Con NVIDIA, la primera vez arma el engine de TensorRT (tarda varios minutos y queda guardado al lado del `.onnx`).
 - `get_directml.bat`: opcional, para Windows sin NVIDIA. Corrélo para que use la placa de video (AMD o Intel) en lugar de la CPU.
 
-Mac: compilalo con `bash native/YoloSegTOP/build_mac.sh` (ver el README).
+- `YoloSegTOP-macOS.zip`: Mac con macOS 13.4 o más nuevo (Apple Silicon e Intel). Descomprimilo, copiá `YoloSegTOP.plugin` a `~/Library/Application Support/Derivative/TouchDesigner099/Plugins` y reiniciá TouchDesigner. Usa ONNX Runtime con CoreML. El plugin no está notarizado: si macOS lo bloquea, corré `xattr -dr com.apple.quarantine ~/Library/Application\ Support/Derivative/TouchDesigner099/Plugins/YoloSegTOP.plugin`.
 
 El modelo es de [Ultralytics](https://github.com/ultralytics/ultralytics) y tiene licencia AGPL-3.0.

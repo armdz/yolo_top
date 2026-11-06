@@ -14,8 +14,10 @@ FillTOPPluginInfo(TOP_PluginInfo* info)
 	info->customOPInfo.opType->setString("Yolosegtrack");
 	info->customOPInfo.opLabel->setString("YOLO Seg Track");
 	info->customOPInfo.opIcon->setString("YST");
-	info->customOPInfo.authorName->setString("Lolo");
+	info->customOPInfo.authorName->setString("Lolo Armdz");
 	info->customOPInfo.authorEmail->setString("");
+	if (info->customOPInfo.opHelpURL)
+		info->customOPInfo.opHelpURL->setString("https://nuevosmiedos.xyz");
 	info->customOPInfo.minInputs = 1;
 	info->customOPInfo.maxInputs = 1;
 }

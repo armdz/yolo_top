@@ -15,9 +15,10 @@ example/*
 !example/yolo_top_example.toe
 !example/yolo_test.mp4
 
-# build: solo la DLL final (la publica el workflow de Release con cada tag v*)
+# build: solo la DLL de Windows y el zip de Mac (los publica el workflow de Release con cada tag v*)
 native/YoloSegTOP/build/*
 !native/YoloSegTOP/build/YoloSegTOP.dll
+!native/YoloSegTOP/build/YoloSegTOP-macOS.zip
 
 # ONNX Runtime para macOS: lo baja build_mac.sh
 native/YoloSegTOP/third_party/onnxruntime/osx/

@@ -23,6 +23,10 @@ fi
 cmake -S . -B build/mac -DCMAKE_BUILD_TYPE=Release -DORT_DIR="$PWD/$ORT_DIR"
 cmake --build build/mac --config Release -j "$(sysctl -n hw.ncpu)"
 
+# zip para el release (un bundle es una carpeta; ditto conserva la firma)
+rm -f build/YoloSegTOP-macOS.zip
+ditto -c -k --norsrc --noextattr --keepParent build/mac/YoloSegTOP.plugin build/YoloSegTOP-macOS.zip
+
 if [ "${1:-}" = "noinstall" ]; then
 	echo "OK: build/mac/YoloSegTOP.plugin"
 	exit 0
