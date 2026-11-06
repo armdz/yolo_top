@@ -19,13 +19,15 @@ The info popup (middle-click on the operator) shows which backend is in use. To 
 
 ### Windows (no compiling)
 
-Download `YoloSegTOP.dll` from [Releases](https://github.com/armdz/yolo_top/releases/latest) (or take `build\YoloSegTOP.dll`), copy it to `Documents\Derivative\Plugins` and restart TouchDesigner. The operator shows up in the OP Create dialog, **Custom** tab.
+Download `YoloSegTOP.dll` from [Releases](https://github.com/armdz/yolo_top/releases/latest), copy it to `Documents\Derivative\Plugins` and restart TouchDesigner. The operator shows up in the OP Create dialog, **Custom** tab.
 
 Without NVIDIA, the plugin uses the `onnxruntime.dll` that ships with TouchDesigner, which runs on the CPU. To use the GPU (AMD or Intel), run `scripts\get_directml.bat`. It downloads ONNX Runtime with DirectML to `Plugins\YoloSeg\`, and the operator's info popup then shows `Backend: ONNX Runtime DirectML`.
 
 ### macOS
 
-Build it on the Mac (Mac binaries are not in the repo). You need the Xcode Command Line Tools (`xcode-select --install`), CMake (`brew install cmake`) and macOS 13.4 or newer.
+Requires macOS 13.4 or newer. Unzip `YoloSegTOP-macos.zip`, copy `YoloSegTOP.plugin` to `~/Library/Application Support/Derivative/TouchDesigner099/Plugins` and run once in Terminal: `xattr -dr com.apple.quarantine ~/Library/Application\ Support/Derivative/TouchDesigner099/Plugins/YoloSegTOP.plugin` (macOS blocks downloaded plugins that aren't notarized).
+
+To build it yourself you need the Xcode Command Line Tools (`xcode-select --install`) and CMake (`brew install cmake`):
 
 ```bash
 cd native/YoloSegTOP
@@ -91,7 +93,7 @@ All parameters are on a single page, grouped in sections. Parameters that don't 
 
 ## Models
 
-A ready-to-use model, `yolo26n-seg.onnx` (YOLO26n-seg, 384×640), is in [Releases](https://github.com/armdz/yolo_top/releases/latest). To use another one, you need a **YOLO26 seg** model exported to ONNX in **FP32** with a fixed size:
+A ready-to-use model, `yolo26n-seg.onnx` (YOLO26n-seg, 384×640), is in [Releases](https://github.com/armdz/yolo_top/releases/latest) and in [`models/`](../../models). To use another one, you need a **YOLO26 seg** model exported to ONNX in **FP32** with a fixed size:
 
 ```python
 from ultralytics import YOLO
@@ -125,6 +127,10 @@ Without the CUDA Toolkit you can build an ONNX Runtime-only version with CMake: 
 ### macOS
 
 `bash build_mac.sh` (see [Install](#macos)). `bash build_mac.sh noinstall` only builds, into `build/mac`.
+
+### Continuous integration
+
+`.github/workflows/build.yml` builds the Windows DLL and the macOS plugin on every push (on macOS it also loads the model once with ONNX Runtime + CoreML). Pushing a `v*` tag publishes a release with both builds, the model and `get_directml.bat`.
 
 ### Testing outside TD
 

@@ -2,3 +2,4 @@
 *.bat text eol=crlf
 *.sh text eol=lf
 *.dll binary
+*.onnx binary

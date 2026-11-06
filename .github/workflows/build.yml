@@ -1,0 +1,93 @@
+# Compila el plugin en cada push. Con un tag v* (ej. git tag v1.0.1 && git push origin v1.0.1)
+# ademas crea el release con la DLL de Windows, el plugin de Mac, el modelo y get_directml.bat.
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      # CUDA 12.x: el plugin usa el cudart64_12.dll que trae TouchDesigner
+      - uses: Jimver/cuda-toolkit@v0.2.36
+        with:
+          cuda: '12.8.1'
+          method: network
+          sub-packages: '["nvcc", "cudart", "crt", "nvvm", "visual_studio_integration"]'
+
+      - name: Build
+        shell: pwsh
+        run: |
+          cmd /c "native\YoloSegTOP\build.bat noinstall" 2>&1 | Tee-Object build.log
+          if ($LASTEXITCODE -ne 0) {
+            Get-Content build.log | Select-String -Pattern 'error|fatal|not found|not recognized' |
+              Select-Object -First 20 | ForEach-Object { "::error::$($_.Line)" }
+            exit 1
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: native/YoloSegTOP/build/YoloSegTOP.dll
+
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          set -o pipefail
+          bash native/YoloSegTOP/build_mac.sh noinstall 2>&1 | tee build.log || {
+            grep -iE 'error|fatal' build.log | head -20 | sed 's/^/::error::/'
+            exit 1
+          }
+
+      # Prueba rapida: carga el modelo con ONNX Runtime + CoreML sobre una imagen vacia
+      - name: Smoke test
+        run: |
+          cd native/YoloSegTOP/build/mac
+          head -c $((1280 * 720 * 4)) /dev/zero > black.rgba
+          ./cpu_bench ../../../../models/yolo26n-seg.onnx black.rgba 1280 720 out.bgra 5 2 2 0 | tee bench.log
+          echo "::notice::$(head -2 bench.log | tr '\n' ' ')"
+
+      - name: Package
+        run: |
+          cd native/YoloSegTOP/build/mac
+          ditto -c -k --keepParent YoloSegTOP.plugin YoloSegTOP-macos.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: native/YoloSegTOP/build/mac/YoloSegTOP-macos.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: YOLO Seg Track ${{ github.ref_name }}
+          body_path: .github/release_notes.md
+          files: |
+            dist/windows/YoloSegTOP.dll
+            dist/macos/YoloSegTOP-macos.zip
+            models/yolo26n-seg.onnx
+            native/YoloSegTOP/scripts/get_directml.bat

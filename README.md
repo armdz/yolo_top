@@ -15,19 +15,28 @@ Runs on Windows (with or without an NVIDIA GPU) and on macOS.
 ## Quick start
 
 1. Download from [Releases](https://github.com/armdz/yolo_top/releases/latest):
-   - `YoloSegTOP.dll` (Windows).
-   - `yolo26n-seg.onnx`: a ready-to-use model (YOLO26n-seg, 384×640).
+   - `YoloSegTOP.dll` (Windows) or `YoloSegTOP-macos.zip` (macOS).
+   - `yolo26n-seg.onnx`: a ready-to-use model (YOLO26n-seg, 384×640). It is also in [`models/`](models).
 2. Install the operator:
 
    | System | How |
    |---|---|
    | Windows | Copy `YoloSegTOP.dll` to `Documents\Derivative\Plugins` and restart TouchDesigner. Without NVIDIA, also run [`get_directml.bat`](native/YoloSegTOP/scripts/get_directml.bat) to use the GPU (AMD or Intel). |
-   | macOS | `bash native/YoloSegTOP/build_mac.sh` (builds and installs; Mac binaries are not in the release yet). |
+   | macOS | Unzip `YoloSegTOP-macos.zip`, copy `YoloSegTOP.plugin` to `~/Library/Application Support/Derivative/TouchDesigner099/Plugins` and run once in Terminal: `xattr -dr com.apple.quarantine ~/Library/Application\ Support/Derivative/TouchDesigner099/Plugins/YoloSegTOP.plugin` (macOS blocks downloaded plugins that aren't notarized). |
 
 3. In TouchDesigner: OP Create, **Custom** tab, **YOLO Seg Track**. Connect a camera and choose `yolo26n-seg.onnx` in *Model File*.
    - With NVIDIA, the first load builds the TensorRT engine: it takes several minutes (the operator shows a warning meanwhile) and is cached next to the `.onnx`, so later loads are instant.
 
 To export other models (bigger, other aspect ratios), see [Models](native/YoloSegTOP/README.md#models). Details (parameters, outputs, building, troubleshooting) are in [`native/YoloSegTOP/README.md`](native/YoloSegTOP/README.md).
+
+## Releases
+
+GitHub Actions builds the plugin for Windows and macOS on every push. Pushing a version tag also publishes the release with the DLL, the Mac plugin, the model and `get_directml.bat`:
+
+```
+git tag v1.0.1
+git push origin v1.0.1
+```
 
 ## Requirements
 
@@ -55,23 +64,26 @@ Es un solo plugin: elige el motor solo al arrancar TouchDesigner. Un `.toe` hech
 
 ### Instalación en Windows
 
-1. Bajá de [Releases](https://github.com/armdz/yolo_top/releases/latest) el `YoloSegTOP.dll` y el modelo `yolo26n-seg.onnx`.
+1. Bajá de [Releases](https://github.com/armdz/yolo_top/releases/latest) el `YoloSegTOP.dll` y el modelo `yolo26n-seg.onnx` (el modelo también está en [`models/`](models)).
 2. Copiá `YoloSegTOP.dll` a `Documents\Derivative\Plugins` (si la carpeta no existe, creala).
 3. Si **no** tenés NVIDIA, corré [`get_directml.bat`](native/YoloSegTOP/scripts/get_directml.bat) para que use la placa de video (AMD o Intel). Sin eso anda igual, pero en CPU y más lento.
 4. Reiniciá TouchDesigner.
 
 ### Instalación en Mac
 
-Por ahora hay que compilarlo en la Mac. Necesitás macOS 13.4 o más nuevo, las herramientas de Xcode y CMake:
+Necesitás macOS 13.4 o más nuevo (Apple Silicon o Intel).
 
-```bash
-xcode-select --install
-brew install cmake
-cd native/YoloSegTOP
-bash build_mac.sh
-```
+1. Bajá de [Releases](https://github.com/armdz/yolo_top/releases/latest) el `YoloSegTOP-macos.zip` y el modelo `yolo26n-seg.onnx`.
+2. Descomprimí el zip y copiá `YoloSegTOP.plugin` a `~/Library/Application Support/Derivative/TouchDesigner099/Plugins` (si la carpeta no existe, creala).
+3. Corré una vez en la Terminal (macOS bloquea los plugins bajados de internet que no están notarizados):
 
-El script baja ONNX Runtime, compila el plugin y lo instala en `~/Library/Application Support/Derivative/TouchDesigner099/Plugins`. La primera vez que TouchDesigner lo carga, te pide permiso.
+   ```bash
+   xattr -dr com.apple.quarantine ~/Library/Application\ Support/Derivative/TouchDesigner099/Plugins/YoloSegTOP.plugin
+   ```
+
+4. Reiniciá TouchDesigner. La primera vez que carga el plugin, te pide permiso.
+
+Si preferís compilarlo vos: `bash native/YoloSegTOP/build_mac.sh` (necesita las herramientas de Xcode y CMake).
 
 ### Uso
 
@@ -112,3 +124,12 @@ YOLO("yolo26s-seg.pt").export(format="onnx", imgsz=(384, 640), half=False, simpl
 ```
 
 `imgsz=(384, 640)` es para 16:9. Para otra relación de aspecto usá la medida que corresponda, en múltiplos de 32.
+
+### Releases
+
+GitHub Actions compila el plugin para Windows y Mac en cada push. Si además subís un tag de versión, publica el release solo, con la DLL, el plugin de Mac, el modelo y `get_directml.bat`:
+
+```
+git tag v1.0.1
+git push origin v1.0.1
+```
